@@ -1,6 +1,5 @@
 <?php
-
-/* ------------------------------- 
+/* -------------------------------
 | Easy Amazon S3 Connection Class |
 |                   by Samuel Faj |
  --------------------------------*/
@@ -15,34 +14,51 @@ class s3{
 	public function __construct($bucket,$con='default'){
 		global $keys;
 		$array = array(
-			'key' =>    'AcessKey'	,  // Your Amazon Acess Key.
-			'secret' => 'SecretKey' ,  // Your Amazon Secret Key.
-			'region' => 'Region'	,  // Your S3 Region (like: us-west-2).
+			'credentials' => array(
+			  'key'    => 'AcessKey'  ,  // Your Amazon Acess Key.
+			  'secret' => 'SecretKey' ,	 // Your Amazon Secret Key.
+			),
+			'region'   => 'Region'    ,	 // Region of S3 (like: us-west-2).
+			'version'  => 'latest'    ,
 		);
 		$this->client = S3Client::factory($array);
 		$this->bucket = $bucket;
 	}
 
 	public function write_file($name,$body,$permissions='public-read'){
-		$contentType = $this->get_contentType($name);
-		$result 	 = $this->client->putObject(array(
-			'ACL'    	  => $permissions	,
-			'Bucket' 	  => $this->bucket  ,
-			'Key'    	  => $name 			,
-			'Body'   	  => $body 			,
-			'ContentType' => $contentType   ,
+		if(empty($body)) return false;
+
+		$result = $this->client->putObject(array(
+			'ACL'    => $permissions  ,
+			'Bucket' => $this->bucket ,
+			'Key'    => $name         ,
+			'Body'   => $body         ,
+			'ContentType' => $this->get_contentType($name)
 		));
 
 		return $result;
 	}
 	public function read_file($name){
-		// Get an object using the getObject operation
-		$result = $this->client->getObject(array(
+		$array = array();
+
+		$iterator = $this->client->getIterator('ListObjects', array(
 			'Bucket' => $this->bucket ,
-			'Key'    => $name 		  ,
+			'Prefix' => $name 		  ,
 		));
-		
-		return $result['Body'];
+
+		foreach ($iterator as $object) {
+			$array[] = $object['Key'];
+		}
+
+		if(in_array($name,$array)){
+			$result = $this->client->getObject(array(
+				'Bucket' => $this->bucket ,
+				'Key'    => $name 		  ,
+			));
+			return $result['Body'];
+		}
+
+		return false;
 	}
 
 	private function get_contentType($name_of_file){
@@ -115,8 +131,9 @@ class s3{
 			"jpeg"      => "image/jpeg",
 			"jpg"       => "image/jpeg",
 			"js"        => "application/x-javascript",
-			"json"      => "text/plain",
+			"json"      => "application/javascript",
 			"latex"     => "application/x-latex",
+			"log"       => "text/plain",
 			"lha"       => "application/octet-stream",
 			"lsf"       => "video/x-la-asf",
 			"lsx"       => "video/x-la-asf",
