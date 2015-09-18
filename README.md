@@ -53,3 +53,7 @@ Let's read the same archive that we sent:
 $s3 = new s3('BucketName');
 	echo $s3->read_file('name_of_file.txt');
 ```
+Output:
+```
+This is a example of uploading one .txt file :)
+```
